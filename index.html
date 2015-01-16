@@ -1,0 +1,162 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Vmstats probe by gord1anknot</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1 class="header">Vmstats probe</h1>
+        <p class="header">escript to inject, at runtime, ferd/vmstats instrumentation into a remote BEAM VM</p>
+
+        <ul>
+          <li class="download"><a class="buttons" href="https://github.com/gord1anknot/vmstats_probe/zipball/master">Download ZIP</a></li>
+          <li class="download"><a class="buttons" href="https://github.com/gord1anknot/vmstats_probe/tarball/master">Download TAR</a></li>
+          <li><a class="buttons github" href="https://github.com/gord1anknot/vmstats_probe">View On GitHub</a></li>
+        </ul>
+
+        <p class="header">This project is maintained by <a class="header name" href="https://github.com/gord1anknot">gord1anknot</a></p>
+
+
+      </header>
+      <section>
+        <h2>
+<a id="vmstats-probe" class="anchor" href="#vmstats-probe" aria-hidden="true"><span class="octicon octicon-link"></span></a>VmStats Probe</h2>
+
+<p>An <a href="http://www.erlang.org/doc/man/escript.html">escript</a> to inject, at runtime, instrumentation into a remote <a href="http://www.erlang.org/">BEAM (Erlang) virtual machine</a> using <a href="https://github.com/ferd/vmstats">vmstats</a> and <a href="https://github.com/ferd/vmstats">StatsD</a>. A VM instrumented in this way will output stats to a StatsD server, until restarted.</p>
+
+<h2>
+<a id="prereqs" class="anchor" href="#prereqs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prereqs</h2>
+
+<p>Erlang.</p>
+
+<pre><code>brew install erlang
+</code></pre>
+
+<h2>
+<a id="caveats" class="anchor" href="#caveats" aria-hidden="true"><span class="octicon octicon-link"></span></a>Caveats</h2>
+
+<p>Scheduler Wall clock statistics are disabled by default due to instability issues on certain Erlang versions. See the <a href="https://github.com/ferd/vmstats#why-scheduler-wall-time-statistics-disabled-by-default">upstream docs</a></p>
+
+<h2>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>The most excellent <a href="https://github.com/jcomellas/getopt">getopt</a> library provides cli help.</p>
+
+<pre><code>~$ ./vmstats_probe
+Vmstats Probe :: Adding statsd to your beam since 2015
+Usage: ./vmstats_probe [&lt;node&gt;] [-l [&lt;lolcat&gt;]] [-c &lt;cookie&gt;]
+[--statsd-ip [&lt;statsd&gt;]] [-s [&lt;names&gt;]]
+[-p [&lt;port&gt;]]
+[-w [&lt;wall&gt;]]
+
+&lt;node&gt;             Remote erlang VM node name
+-l, --lolz         Print erlang lolcat [default: false]
+-c, --cookie       Provide a cookie, if needed, to connect to remote node
+--statsd-ip        the IP address of StatsD UDP server. See the docs for inet:parse_address/1 for more. [default: 127.0.0.1]
+-s, --shortnames   Use short node names [default: false]
+-p, --statsd-port  StatsD UDP port number [default: 8125]
+-w, --enable-wall  Enable Scheduler Wall-Clock Statistics - warning, may cause instability [default: false]
+</code></pre>
+
+<p>Examples:</p>
+
+<p>Long Names:</p>
+
+<pre><code>./vmstats_probe --statsd-ip "10.199.103.168" farawaynode@server.example.org
+Starting net_kernel, using longnames...
+Started net_kernel, connecting to farawaynode@server.example.org...
+Connected successfully! Loading modules...
+Remote loading completed! Starting statistics applications...
+Remote application start completed, output was:
+[ok,ok,ok,ok,ok,ok,ok,ok,ok,ok]
+</code></pre>
+
+<p>Short Names:</p>
+
+<pre><code>./vmstats_probe --statsd-ip "127.0.0.1" -s target@`hostname -s`
+Starting net_kernel, using shortnames...
+Started net_kernel, connecting to target@BRADS_MACBOOK...
+Connected successfully! Loading modules...
+Remote loading completed! Starting statistics applications...
+Remote application start completed, output was:
+[ok,ok,ok,ok,ok,ok,ok,ok,ok,ok]
+</code></pre>
+
+<p>Error Message if unable to connect to remote node with longnames:</p>
+
+<pre><code>./vmstats_probe --statsd-ip "127.0.0.1" target@fakehost.notarealdomain.org
+Starting net_kernel, using longnames...
+Started net_kernel, connecting to target@fakehost.notarealdomain.org...
+Node name "'target@fakehost.notarealdomain.org'" not reachable.
+Ensure the remote node's host name is reachable from this host using DNS, and check that the remote epmd service is available from this host using telnet.
+</code></pre>
+
+<p>Error Message if unable to connect to remote node with shortnames:</p>
+
+<pre><code>./vmstats_probe --statsd-ip "127.0.0.1" -s target
+Starting net_kernel, using shortnames...
+Started net_kernel, connecting to target...
+Node name "target" not reachable.
+Ensure the remote node is using short names, and has "@BRADS_MACBOOK" at the end.
+</code></pre>
+
+<p>For the StatsD IP address, use a string parseable by the <a href="http://www.erlang.org/doc/man/inet.html">inet erlang library</a>.</p>
+
+<pre><code>./vmstats_probe --statsd-ip "{127,0,0,1} bad arg." -s target@`hostname -s`
+Unable to parse StatsD IP address config.
+</code></pre>
+
+<h2>
+<a id="how-do-i-remove-the-remote-loaded-code-from-the-remote-node" class="anchor" href="#how-do-i-remove-the-remote-loaded-code-from-the-remote-node" aria-hidden="true"><span class="octicon octicon-link"></span></a>How do I remove the remote-loaded code from the remote node?</h2>
+
+<p>At this time, you don't - you <em>must</em> restart the remote VM. The change to add
+the code to the VM isn't persisted to disk, so a restart will wipe it clean.
+It will be possible to add remote <em>uninstallation</em> functionality in a later
+release.</p>
+
+<h2>
+<a id="building" class="anchor" href="#building" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building</h2>
+
+<pre><code>rebar get-deps clean compile escriptize &amp;&amp; ./vmstats_probe
+</code></pre>
+
+<h3>
+<a id="compatibility" class="anchor" href="#compatibility" aria-hidden="true"><span class="octicon octicon-link"></span></a>Compatibility</h3>
+
+<p>This script was (manually) tested on:</p>
+
+<ul>
+<li>Erlang R15B01, platform: Darwin</li>
+<li>Erlang R15B03, platform: Darwin</li>
+<li>Erlang R16B03-1, platform: Darwin</li>
+<li>Erlang 17.4, platform: Darwin</li>
+</ul>
+
+<p>I would expect mixing different runtime versions and platforms for the escript itself and the remote target of the escript will get bad results, but you never know. Of course, YMMV.</p>
+
+<h3>
+<a id="props-list" class="anchor" href="#props-list" aria-hidden="true"><span class="octicon octicon-link"></span></a>Props List</h3>
+
+<p>Fred Herbert -&gt; creator of epic awesome Erlang libraries <a href="https://github.com/ferd/recon">recon</a> and <a href="https://github.com/ferd/vmstats">vmstats</a></p>
+
+<p>Etsy         -&gt; creator of <a href="https://github.com/etsy/statsd">StatsD</a></p>
+      </section>
+      <footer>
+        <p><small>Hosted on <a href="http://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+		
+  </body>
+</html>
