@@ -1,0 +1,6 @@
+{application, vmstats_probe,
+ [{description, "Inject vmstats into a remote Erlang VM"},
+  {vsn, "0.1.0"},
+  {modules, [vmstats_probe]},
+  {registered, []},
+  {applications, [kernel, stdlib]}]}.
